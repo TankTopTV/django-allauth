@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.utils import timezone
 
 from allauth.socialaccount.helpers import render_authentication_error
 from allauth.socialaccount import providers
@@ -8,17 +11,25 @@ from allauth.socialaccount.providers.oauth2.client import (OAuth2Client,
 from allauth.socialaccount.helpers import complete_social_login
 from allauth.socialaccount.models import SocialToken, SocialLogin
 
-
 class OAuth2Adapter(object):
+    expires_in_key = 'expires_in'
 
     def get_provider(self):
         return providers.registry.by_id(self.provider_id)
 
-    def complete_login(self, request, app, access_token):
+    def complete_login(self, request, app, access_token, **kwargs):
         """
         Returns a SocialLogin instance
         """
         raise NotImplementedError
+
+    def parse_token(self, data):
+        token = SocialToken(token=data['access_token'])
+        token.token_secret = data.get('refresh_token', '')
+        expires_in = data.get(self.expires_in_key, None)
+        if expires_in:
+            token.expires_at = timezone.now() + timedelta(seconds=int(expires_in))
+        return token
 
 class OAuth2View(object):
     @classmethod
@@ -33,11 +44,13 @@ class OAuth2View(object):
     def get_client(self, request, app):
         callback_url = reverse(self.adapter.provider_id + "_callback")
         callback_url = request.build_absolute_uri(callback_url)
+        provider = self.adapter.get_provider()
         client = OAuth2Client(self.request, app.client_id, app.secret,
                               self.adapter.authorize_url,
                               self.adapter.access_token_url,
                               callback_url,
-                              self.adapter.get_provider().get_scope())
+                              provider.get_scope(),
+                              provider.get_auth_params())
         return client
 
 
@@ -61,11 +74,12 @@ class OAuth2CallbackView(OAuth2View):
         client = self.get_client(request, app)
         try:
             access_token = client.get_access_token(request.GET['code'])
-            token = SocialToken(app=app,
-                                token=access_token)
+            token = self.adapter.parse_token(access_token)
+            token.app = app
             login = self.adapter.complete_login(request,
                                                 app,
-                                                token)
+                                                token,
+                                                response=access_token)
             token.account = login.account
             login.token = token
             login.state = SocialLogin.unmarshall_state(request.REQUEST

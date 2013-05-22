@@ -1,7 +1,10 @@
+import json
+
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
 from django.template import RequestContext
+from django.utils.html import mark_safe
 
 from allauth.utils import import_callable
 from allauth.socialaccount import providers
@@ -10,7 +13,7 @@ from allauth.socialaccount.providers.oauth2.provider import OAuth2Provider
 from allauth.socialaccount.app_settings import QUERY_EMAIL
 from allauth.socialaccount.models import SocialApp
 
-from locale import get_default_locale_callable
+from .locale import get_default_locale_callable
 
 
 class FacebookAccount(ProviderAccount):
@@ -21,8 +24,8 @@ class FacebookAccount(ProviderAccount):
         uid = self.account.uid
         return 'http://graph.facebook.com/%s/picture?type=large' % uid
 
-    def __unicode__(self):
-        dflt = super(FacebookAccount, self).__unicode__()
+    def to_str(self):
+        dflt = super(FacebookAccount, self).to_str()
         return self.account.extra_data.get('name', dflt)
 
 
@@ -70,8 +73,12 @@ class FacebookProvider(OAuth2Provider):
             scope.append('email')
         return scope
 
+    def get_fb_login_options(self):
+        ret = self.get_auth_params()
+        ret['scope'] = ','.join(self.get_scope())
+        return ret
+
     def media_js(self, request):
-        perms = ','.join(self.get_scope())
         locale = self.get_locale_for_request(request)
         try:
             app = self.get_app(request)
@@ -79,10 +86,11 @@ class FacebookProvider(OAuth2Provider):
             raise ImproperlyConfigured("No Facebook app configured: please"
                                        " add a SocialApp using the Django"
                                        " admin")
+        fb_login_options = self.get_fb_login_options()
         ctx =  {'facebook_app': app,
                 'facebook_channel_url':
                 request.build_absolute_uri(reverse('facebook_channel')),
-                'facebook_perms': perms,
+                'fb_login_options': mark_safe(json.dumps(fb_login_options)),
                 'facebook_jssdk_locale': locale}
         return render_to_string('facebook/fbconnect.html',
                                 ctx,

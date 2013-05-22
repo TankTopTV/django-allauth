@@ -1,9 +1,12 @@
 # Courtesy of django-social-auth
+import json
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import simplejson
-from django.utils.encoding import smart_unicode
+try:
+    from django.utils.encoding import smart_unicode as smart_text
+except ImportError:
+    from django.utils.encoding import smart_text
 
 
 class JSONField(models.TextField):
@@ -21,8 +24,8 @@ class JSONField(models.TextField):
             return None
         if isinstance(value, basestring):
             try:
-                return simplejson.loads(value)
-            except Exception, e:
+                return json.loads(value)
+            except Exception as e:
                 raise ValidationError(str(e))
         else:
             return value
@@ -33,20 +36,20 @@ class JSONField(models.TextField):
         if isinstance(value, basestring):
             super(JSONField, self).validate(value, model_instance)
             try:
-                simplejson.loads(value)
-            except Exception, e:
+                json.loads(value)
+            except Exception as e:
                 raise ValidationError(str(e))
 
     def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
-            return simplejson.dumps(value)
-        except Exception, e:
+            return json.dumps(value)
+        except Exception as e:
             raise ValidationError(str(e))
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""
-        return smart_unicode(self.get_prep_value(self._get_val_from_obj(obj)))
+        return smart_text(self.get_prep_value(self._get_val_from_obj(obj)))
 
     def value_from_object(self, obj):
         """Return value dumped to string."""

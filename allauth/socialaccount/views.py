@@ -6,32 +6,44 @@ from django.contrib.sites.models import Site
 from django.template import RequestContext
 from django.shortcuts import render_to_response
 from django.contrib.auth.decorators import login_required
+from django.views.generic.edit import FormView
 
-from forms import DisconnectForm, SignupForm
+from ..account.views import CloseableSignupMixin, RedirectAuthenticatedUserMixin
 
-import helpers
+from .forms import DisconnectForm, SignupForm
+from . import helpers
 
 
-def signup(request, **kwargs):
-    if request.user.is_authenticated():
-        return HttpResponseRedirect(reverse(connections))
-    sociallogin = request.session.get('socialaccount_sociallogin')
-    if not sociallogin:
-        return HttpResponseRedirect(reverse('account_login'))
-    form_class = kwargs.pop("form_class", SignupForm)
-    template_name = kwargs.pop("template_name", 'socialaccount/signup.html')
-    if request.method == "POST":
-        form = form_class(request.POST, sociallogin=sociallogin)
-        if form.is_valid():
-            form.save(request)
-            return helpers.complete_social_signup(request, sociallogin)
-    else:
-        form = form_class(sociallogin=sociallogin)
-    dictionary = dict(site=Site.objects.get_current(),
-                      account=sociallogin.account,
-                      form=form)
-    return render_to_response(template_name, dictionary, 
-                              RequestContext(request))
+class SignupView(RedirectAuthenticatedUserMixin, CloseableSignupMixin, FormView):
+    form_class = SignupForm
+    template_name = 'socialaccount/signup.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.sociallogin = request.session.get('socialaccount_sociallogin')
+        if not self.sociallogin:
+            return HttpResponseRedirect(reverse('account_login'))
+        return super(SignupView, self).dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        ret = super(SignupView, self).get_form_kwargs()
+        ret['sociallogin'] = self.sociallogin
+        return ret
+            
+    def form_valid(self, form):
+        form.save(self.request)
+        return helpers.complete_social_signup(self.request, 
+                                              self.sociallogin)
+
+    def get_context_data(self, **kwargs):
+        ret = super(SignupView, self).get_context_data(**kwargs)
+        ret.update(dict(site=Site.objects.get_current(),
+                        account=self.sociallogin.account))
+        return ret
+
+    def get_authenticated_redirect_url(self):
+        return reverse(connections)
+
+signup = SignupView.as_view()
 
 
 def login_cancelled(request):
