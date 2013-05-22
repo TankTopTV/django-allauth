@@ -14,10 +14,10 @@ class ProviderLoginURLNode(template.Node):
         provider_id = self.provider_id_var.resolve(context)
         provider = providers.registry.by_id(provider_id)
         query = dict([(str(name), var.resolve(context)) for name, var
-                      in self.params.iteritems()])
-        request = context['request']
+                      in self.params.items()])
+        request = context.get('request', None)
         if 'next' not in query:
-            next = request.REQUEST.get('next')
+            next = request and request.REQUEST.get('next')
             if next:
                 query['next'] = next
         else:
@@ -35,11 +35,11 @@ def provider_login_url(parser, token):
     provider_id = bits[1]
     params = token_kwargs(bits[2:], parser, support_legacy=False)
     return ProviderLoginURLNode(provider_id, params)
-    
+
 class ProvidersMediaJSNode(template.Node):
     def render(self, context):
         request = context['request']
-        ret = '\n'.join([p.media_js(request) 
+        ret = '\n'.join([p.media_js(request)
                          for p in providers.registry.get_list()])
         return ret
 
