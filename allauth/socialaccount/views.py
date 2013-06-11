@@ -7,6 +7,7 @@ from django.template import RequestContext
 from django.shortcuts import render_to_response
 from django.contrib.auth.decorators import login_required
 from django.views.generic.edit import FormView
+from django.views.decorators.cache import never_cache
 
 from ..account.views import CloseableSignupMixin, RedirectAuthenticatedUserMixin
 
@@ -23,15 +24,15 @@ class SignupView(RedirectAuthenticatedUserMixin, CloseableSignupMixin, FormView)
         if not self.sociallogin:
             return HttpResponseRedirect(reverse('account_login'))
         return super(SignupView, self).dispatch(request, *args, **kwargs)
-    
+
     def get_form_kwargs(self):
         ret = super(SignupView, self).get_form_kwargs()
         ret['sociallogin'] = self.sociallogin
         return ret
-            
+
     def form_valid(self, form):
         form.save(self.request)
-        return helpers.complete_social_signup(self.request, 
+        return helpers.complete_social_signup(self.request,
                                               self.sociallogin)
 
     def get_context_data(self, **kwargs):
@@ -43,12 +44,13 @@ class SignupView(RedirectAuthenticatedUserMixin, CloseableSignupMixin, FormView)
     def get_authenticated_redirect_url(self):
         return reverse(connections)
 
-signup = SignupView.as_view()
+# Never cache this signup screen as it is pre-populated with social account info.
+signup = never_cache(SignupView.as_view())
 
 
 def login_cancelled(request):
     d = {}
-    return render_to_response('socialaccount/login_cancelled.html', d, 
+    return render_to_response('socialaccount/login_cancelled.html', d,
                               context_instance=RequestContext(request))
 
 
@@ -62,7 +64,7 @@ def connections(request):
     if request.method == 'POST':
         form = DisconnectForm(request.POST, user=request.user)
         if form.is_valid():
-            messages.add_message(request, messages.INFO, 
+            messages.add_message(request, messages.INFO,
                                  _('The social account has been disconnected'))
             form.save()
             form = None
