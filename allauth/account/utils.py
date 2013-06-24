@@ -222,6 +222,9 @@ def setup_user_email(request, user, addresses):
                                                  priority_addresses
                                                  + addresses)
     for a in addresses:
+        # Ensure user id set on address.  Will not be the case if the address
+        # comes from the social account but is not used on the form
+        a.user = user
         a.save()
     if (primary 
         and email
