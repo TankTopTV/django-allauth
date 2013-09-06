@@ -19,6 +19,9 @@ class OAuthAdapter(object):
     def get_provider(self):
         return providers.registry.by_id(self.provider_id)
 
+    def update_client_login(self, request, client):
+        return
+
 
 class OAuthView(object):
     @classmethod
@@ -54,6 +57,7 @@ class OAuthLoginView(OAuthView):
         request.session['oauth_login_state'] \
             = SocialLogin.marshall_state(request)
         client = self._get_client(request, callback_url)
+        self.adapter.update_client_login(request, client)
         try:
             return client.get_redirect()
         except OAuthError:
