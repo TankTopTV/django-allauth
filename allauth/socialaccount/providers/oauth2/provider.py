@@ -10,11 +10,11 @@ class OAuth2Provider(Provider):
             url = url + '?' + urlencode(kwargs)
         return url
 
-    def get_auth_params(self):
+    def get_auth_params(self, request=None):
         settings = self.get_settings()
         return settings.get('AUTH_PARAMS', {})
-        
-    def get_scope(self):
+
+    def get_scope(self, request=None):
         settings = self.get_settings()
         scope = settings.get('SCOPE')
         if scope is None:

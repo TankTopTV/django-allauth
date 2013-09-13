@@ -49,8 +49,8 @@ class OAuth2View(object):
                               self.adapter.authorize_url,
                               self.adapter.access_token_url,
                               callback_url,
-                              provider.get_scope(),
-                              provider.get_auth_params())
+                              provider.get_scope(request),
+                              provider.get_auth_params(request))
         return client
 
 

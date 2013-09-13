@@ -67,6 +67,18 @@ class FacebookProvider(OAuth2Provider):
             self._locale_callable_cache = self._get_locale_callable()
         return self._locale_callable_cache(request)
 
+    def get_auth_params(self, request):
+        params = super(FacebookProvider, self).get_auth_params(request)
+        if 'display' in request.GET:
+            params['display'] = request.GET['display']
+        return params
+
+    def get_scope(self, request):
+        scope = super(FacebookProvider, self).get_scope(request)
+        if 'scope' in request.GET:
+            scope.extend(request.GET.getlist('scope'))
+        return scope
+
     def get_default_scope(self):
         scope = []
         if QUERY_EMAIL:
