@@ -42,9 +42,6 @@ class TwitterOAuthAdapter(OAuthAdapter):
                                 extra_data=extra_data)
         return SocialLogin(account)
 
-    def update_client_login(self, request, client):
-        client.parameters['x_auth_access_type'] = request.GET.get('x_auth_access_type', 'read')
-
 
 oauth_login = OAuthLoginView.adapter_view(TwitterOAuthAdapter)
 oauth_callback = OAuthCallbackView.adapter_view(TwitterOAuthAdapter)
