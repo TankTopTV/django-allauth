@@ -206,6 +206,14 @@ class AppSettings(object):
         return self._setting('USER_MODEL_EMAIL_FIELD', 'email')
 
     @property
+    def MESSAGE_ON_LOGIN(self):
+        """
+        Use the messaging framework to tell the user they have successfully signed in.  Set this to False
+        if the message gets annoying.
+        """
+        return self._setting('MESSAGE_ON_LOGIN', True)
+
+    @property
     def MESSAGE_ON_LOGOUT(self):
         """
         Use the messaging framework to tell the user they have successfully signed out.  You might

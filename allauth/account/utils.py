@@ -124,7 +124,8 @@ def perform_login(request, user, email_verification,
                                 request=request,
                                 user=user,
                                 **signal_kwargs)
-    get_adapter().add_message(request,
+    if app_settings.MESSAGE_ON_LOGIN:
+        get_adapter().add_message(request,
                               messages.SUCCESS,
                               'account/messages/logged_in.txt',
                               {'user': user})
