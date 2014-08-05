@@ -221,6 +221,7 @@ class AppSettings(object):
         """
         return self._setting('MESSAGE_ON_LOGOUT', True)
 
+    @property
     def SESSION_COOKIE_AGE(self):
         """
         Remembered sessions expire after this many seconds.
